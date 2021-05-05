@@ -21,6 +21,7 @@ print("\nStart reading dataset...\n")
 # df = pd.read_csv("train.csv")
 # df = pd.read_csv("./data/training.1600000.processed.noemoticon.csv")
 df = pd.read_csv("./data/data.csv")
+df = df.sort_values(by=['label'])
 print("Finish Reading\n")
 # Preprocessing
 
@@ -157,14 +158,20 @@ model.add(layers.Embedding(num_unique_words, 32, input_length=max_length))
 # Now model.output_shape is (None, input_length, 32), where `None` is the batch dimension.
 
 
-model.add(layers.LSTM(128, dropout=0.1))
+model.add(layers.Conv1D(filters=64, kernel_size=3,
+                        padding='same', activation="tanh"))
+model.add(layers.MaxPooling1D(pool_size=2))
+model.add(layers.Dense(128, activation="relu"))
+# LSTM part
+model.add(layers.LSTM(96))
+model.add(layers.Dense(64, activation="relu"))
 model.add(layers.Dense(1, activation="sigmoid"))
 
 
 print(model.summary())
 
 loss = keras.losses.BinaryCrossentropy(from_logits=False)
-optim = keras.optimizers.Adam(lr=0.001)
+optim = keras.optimizers.Adam(lr=0.0083)
 metrics = ["accuracy"]
 
 print("\nCompiling Model...\n")
@@ -172,8 +179,8 @@ model.compile(loss=loss, optimizer=optim, metrics=metrics)
 print("\nDone Compiling Model\n")
 
 print("\nNow start training model...\n")
-model.fit(train_padded, train_labels, epochs=30, validation_data=(
+model.fit(train_padded, train_labels, epochs=5, validation_data=(
     val_padded, val_labels), callbacks=[tensorboard])
 
 print("Saving model")
-model.save("./model/model.h5", include_optimizer=False)
+model.save(f"./model/model-th-{time.time()}.h5", include_optimizer=False)
